@@ -1,6 +1,4 @@
-﻿// FULLY OPTIMIZED HYPIXEL SKYBLOCK AUCTION FLIPPING BOT WITH MINEFLAYER
-
-const mineflayer = require('mineflayer');
+﻿const mineflayer = require('mineflayer');
 const axios = require('axios');
 const fs = require('fs');
 const nbt = require('prismarine-nbt');
@@ -43,7 +41,7 @@ if (!fs.existsSync(configFile)) {
 
 const config = JSON.parse(fs.readFileSync(configFile));
 
-// Example usage:
+//Config grabbing
 const email = config.email;
 const listUnder2ndLBin = config.listUnder2ndLBin;
 const purchasing = config.purchasing;
@@ -137,23 +135,19 @@ function normalizeItemName(name, rarity) {
         if (!excludeRarities) normalized = `${rarity} ${normalized}`;
     }
 
-    //console.log(`🧽 Normalized item name: "${name}" -> "${normalized}" (rarity: ${rarity})`);
     return normalized;
 }
 
 function getItemRarityFromLore(lore) {
     if (!lore) {
-        //console.log("➣ No lore provided to determine rarity.");
         return "UNKNOWN";
     }
     const loreText = lore.toUpperCase();
     for (const rarity of RARITIES.sort((a, b) => b.length - a.length)) {
         if (loreText.includes(rarity)) {
-            //console.log(`🎨 Rarity detected in lore: ${rarity}`);
             return rarity;
         }
     }
-    //console.log("❓ Rarity unknown for given lore.");
     return "UNKNOWN";
 }
 
@@ -177,13 +171,11 @@ function sortPriceHistory() {
     for (const entries of Object.values(priceHistory)) {
         entries.sort((a, b) => b.time - a.time);
     }
-    //console.log("➣ Sorted price history entries by time.");
 }
 
 async function fetchWithRetry(url, retries = 3, delay = 300) {
     for (let i = 0; i <= retries; i++) {
         try {
-            //console.log(`🌐 Fetching URL: ${url} (Attempt ${i + 1})`);
             return await axiosInstance.get(url);
         } catch (err) {
             console.warn(`➣ Fetch failed for ${url} (Attempt ${i + 1}): ${err.message}`);
@@ -332,7 +324,7 @@ async function detectInitialDelayTime() {
         console.log(`➣ Initial lastUpdated from API: ${initialLastUpdated}`);
         let newLastUpdated = initialLastUpdated;
 
-        for (let i = 0; i < 180; i++) { // wait up to ~90s
+        for (let i = 0; i < 180; i++) { 
             await new Promise(resolve => setTimeout(resolve, 500));
 
             const checkRes = await axios.get("https://api.hypixel.net/skyblock/auctions?page=0");
@@ -344,7 +336,6 @@ async function detectInitialDelayTime() {
                 console.log(`➣ Initial delayTime established: ${delayTime}ms`);
                 return;
             } else {
-                //console.log(`➣ Waiting for new API update... [${i + 1}]`);
             }
         }
 
@@ -357,7 +348,7 @@ async function detectInitialDelayTime() {
 
 async function earlyApiSpamCheck() {
     if (isSpamChecking) {
-        return; // 🚫 Already running
+        return;
     }
 
     isSpamChecking = true;
@@ -385,7 +376,6 @@ async function earlyApiSpamCheck() {
                 auctionFetchPromise = fetchAllAuctions()
                     .then(data => {
                         auctionsCache = data;
-                        //console.log(`➣ Early fetch completed with ${data.length} auctions.`);
                     })
                     .catch(err => {
                         console.error("➣ Fetch error:", err);
@@ -394,7 +384,7 @@ async function earlyApiSpamCheck() {
                         auctionFetchPromise = null;
                     });
 
-                break; // Stop loop if fetch triggered
+                break;
             } else {
                 console.log(`➣ Spam check [${i + 1}/${attempts}]: No update yet.`);
             }
@@ -403,7 +393,7 @@ async function earlyApiSpamCheck() {
         }
     }
 
-    isSpamChecking = false; // ✅ Done
+    isSpamChecking = false;
 }
 
 async function itemHasSoldLore(item) {
@@ -438,7 +428,6 @@ async function claimSoldAuctions() {
         await new Promise(r => setTimeout(r, 1000));
 
         bot.currentWindow.requiresConfirmation = false;
-        //console.log("➣ Clicking 'Manage Auctions' (slot 15)...");
         await bot.clickWindow(15, 0, 0);
         await new Promise(r => setTimeout(r, 800));
 
@@ -451,10 +440,8 @@ async function claimSoldAuctions() {
         let claimed = 0;
         for (let i = 0; i < window.slots.length; i++) {
             const item = window.slots[i];
-            //console.log(`Checking slot: ${i} Item: ${item}`);
 
             if (item && await itemHasSoldLore(item)) {
-                //console.log(`➣ Claiming sold item in slot ${i}.`);
                 await new Promise(resolve => setTimeout(resolve, 1000));
                 if (bot.currentWindow != null) {
                     bot.currentWindow.requiresConfirmation = false;
@@ -488,7 +475,6 @@ async function waitForWindow(titleSubstring, timeout = 5000) {
     return new Promise((resolve) => {
         let resolved = false;
 
-        // ✅ Check immediately if window is already open
         if (bot.currentWindow?.title?.includes(titleSubstring)) {
             return resolve(bot.currentWindow);
         }
@@ -530,7 +516,6 @@ function waitForPurchaseConfirmation(timeout = 5000) {
     });
 }
 
-// Mineflayer Bot
 const bot = mineflayer.createBot({
     host: 'mc.hypixel.net',
     username: email,
@@ -544,7 +529,6 @@ bot.on('spawn', async () => {
     if (hasSpawned) return;
     hasSpawned = true;
 
-    //console.log("➣ Bot spawned. Waiting to detect delayTime from first auction update...");
     await detectInitialDelayTime();
 
     console.log("➣ Entering main loop...");
@@ -592,7 +576,6 @@ async function loop() {
                     bot.closeWindow(bot.currentWindow);
                 }
                 if (!purchasing || currentPurse < flip.originalPrice || purchaseList.length >= maxPurchases) continue;
-                //await new Promise(r => setTimeout(r, 250));
                 console.log(`➣ Attempting purchase for ${flip.originalName} at ${format(flip.originalPrice)} coins with a profit of ${flip.rawProfit}`);
                 await bot.chat(`/viewauction ${flip.uuid}`);
 
@@ -611,14 +594,10 @@ async function loop() {
                                 const slot = window.slots[31];
 
                                 if (slot?.name === "gold_nugget" || slot?.name === "bed") {
-                                    //console.log(`➣ ${slot.name === 'bed' ? "Bed spam triggered" : "Gold Nugget"} found in BIN window.`);
                                     bot.currentWindow.requiresConfirmation = false;
                                     await bot.clickWindow(31, 0, 0);
                                 } else {
                                     console.log(`➣ Unexpected item in auction slot: ${slot?.name || 'None'}`);
-                                    //if (bot.currentWindow) {
-                                    //console.log(bot.currentWindow);
-                                    //}
                                     if (slot) {
                                         pl1 = 99999999;
                                         bot.closeWindow(bot.currentWindow);
@@ -639,48 +618,51 @@ async function loop() {
 
                                 if (!confirmWindow || !confirmWindow.slots) {
                                     console.log("➣ Confirm window is missing or closed unexpectedly.");
-                                    break;
+                                    await new Promise(r => setTimeout(r, 5));
                                 }
+                                else {
 
-                                const confirmSlot = confirmWindow.slots[11];
-                                let confirmed = false;
+                                    const confirmSlot = confirmWindow.slots[11];
+                                    let confirmed = false;
 
-                                if (confirmSlot?.name === "stained_hardened_clay") {
-                                    bot.currentWindow.requiresConfirmation = false;
-                                    await bot.clickWindow(11, 0, 0);
+                                    if (confirmSlot?.name === "stained_hardened_clay") {
+                                        bot.currentWindow.requiresConfirmation = false;
+                                        await bot.clickWindow(11, 0, 0);
 
-                                    try {
-                                        confirmed = await waitForPurchaseConfirmation(22000);
-                                    } catch (err) {
-                                        console.error("➣ Purchase confirmation failed:", err.message);
-                                        confirmed = false;
-                                        if (bot.currentWindow) {
-                                            bot.closeWindow(bot.currentWindow);
+                                        try {
+                                            confirmed = await waitForPurchaseConfirmation(22000);
+                                        } catch (err) {
+                                            console.error("➣ Purchase confirmation failed:", err.message);
+                                            confirmed = false;
+                                            if (bot.currentWindow) {
+                                                bot.closeWindow(bot.currentWindow);
+                                            }
                                         }
-                                    }
 
-                                    const purchaseRecord = {
-                                        timePurchased: new Date().toISOString(),
-                                        valuePurchased: flip.originalPrice,
-                                        projectedSaleValue: flip.rawProfit + flip.originalPrice,
-                                        itemName: flip.originalName
-                                    };
+                                        const purchaseRecord = {
+                                            timePurchased: new Date().toISOString(),
+                                            valuePurchased: flip.originalPrice,
+                                            projectedSaleValue: flip.rawProfit + flip.originalPrice,
+                                            itemName: flip.originalName
+                                        };
 
-                                    if (confirmed) {
-                                        console.log("➣ Purchase confirmed by chat message.");
-                                        purchaseList.push(purchaseRecord);
-                                        purchaseList.sort((a, b) => new Date(a.timePurchased) - new Date(b.timePurchased));
-                                        successfulPurchases.push(purchaseRecord);
-                                        break; // ✅ Exit pl2
+                                        if (confirmed) {
+                                            console.log("➣ Purchase confirmed by chat message.");
+                                            purchaseList.push(purchaseRecord);
+                                            purchaseList.sort((a, b) => new Date(a.timePurchased) - new Date(b.timePurchased));
+                                            successfulPurchases.push(purchaseRecord);
+                                            pl1 = 99999;
+                                            pl2 = 99999;
+                                        } else {
+                                            console.log("➣ Purchase confirmation chat message not received in time.");
+                                            pl1 = 99999;
+                                            pl2 = 99999;
+                                        }
                                     } else {
-                                        console.log("➣ Purchase confirmation chat message not received in time.");
+                                        console.log(`➣ Unexpected confirm item: ${confirmSlot?.name || 'None'}`);
                                     }
-                                } else {
-                                    console.log(`➣ Unexpected confirm item: ${confirmSlot?.name || 'None'}`);
                                 }
                             }
-
-                            break; // ✅ Exit pl1 loop after handling confirmation
                         }
 
                     }
